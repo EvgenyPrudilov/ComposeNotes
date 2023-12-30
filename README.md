@@ -1,2 +1,2 @@
 # ComposeNotes
- Конспекты (Notes) по JetPack Compose
+ Конспекты и заметки(Notes) по JetPack Compose
