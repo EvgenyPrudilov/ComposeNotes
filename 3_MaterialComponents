@@ -51,6 +51,52 @@ content: @Composable RowScope.() -> Unit
 }
 
 --------------------
+Примеры простых элементов:
+
+Лайтовая обведённая кнопка: 
+
+OutlinedButton(
+    onClick = {
+        // действие при клике.
+    }
+) {  // то, что видим на кнопке
+    Text(
+        text = "Hello"
+    )
+}
+
+Текстовое поле с лейбом:
+
+TextField(
+    value = "Value",
+    onValueChange = {
+        // действие при изменениии
+    },
+    label = {
+        Text(text = "label name")
+    }
+)
+
+Деалоговое окно:
+
+AlertDialog(
+    onDismissRequest = {},
+    conffirmButton = {
+        Text(modifier = Modifier.padding(8.dp), text = "Yes")
+    }
+    },
+    title = {
+        Text(text = "Are you sure?")
+    },
+    text = {
+        Text(text = "Do you want to delete this file?")
+    },
+    dismissButton = {
+        Text(modifier = Modifier.padding(8.dp), text = "No")
+    }
+)
+
+--------------------
 
 Scaffold - composable функция - элемент пользовательского интерфейса, который, по сути, представляет весь экран. Она принимает очень много параметров, в том числе:
 * topBar - верхняя часть экрана
