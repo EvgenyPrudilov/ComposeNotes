@@ -1,0 +1,370 @@
+
+----------------
+State и работа  с ViewModel
+----------------
+
+Чтобы при клике на кнопку Button у нас перерисовывался экран, необходимо, чтобы эта кнопка зависела от определённого стейта. Кнопка для Follow из шапки инстаграмма:
+
+@Composable
+fun InstagramProfileCard() {
+    val isFollowed = remember { mutableStateOf(false) }
+
+    ...
+    ... {
+        Button(
+            onClick = {
+                isFollowed.value = !isFollowe.value
+            }
+        ) {
+            val text = if (isFollowed.value) { "Unfollow" } else { "Follow" }
+            Text(text = text)
+        }
+    }
+}
+
+Теперь текст будет меняться при клике не кнопку. При повороте экрана у нас текст не сохраняется - это из-за того, что функция remember умеет переживать рекомпозицию, но не умеет переживать поворот экрана. Чтобы этого достич можно использовать вместо remember функцию rememberSaveable(...) { ... }. Теперь всё работает.
+
+По умолчанию для Button параметра colors используется функция ButtonDefaults.buttonColors(), которая возвращает тип ButtonColors - набор цветов. Она возвращает набор цветов:
+backgroundColor = ...
+contentColor = ...
+disabledBackgroundColor - цвет, если на кнопку кликнуть невозможно
+disabledContentColor - цвет, если на кнопку кликнуть невозможно
+
+Установить цвет фона кнопки и сделать его более прозрачным:
+
+Button(
+    colors = ButtonDeffaults.buttonColors(backgroundColor = 
+        if (isFollowed.value) {
+            MaterialTheme.colors.primary.copy(alpha = 0.5f)
+        } else
+            MaterialTheme.colors.primary
+        }
+    )
+)
+
+Statefull composable функция - это функция, которая подписывается на состояние, и она же меняет это состояние - она сама определяет свой стейт, сама его меняет и сама на него подписывается. Это не очень хорошая правктика для JetPack Compose - желательно, чтобы эти функции могли быть переиспользованы в разных местах приложения.
+
+Если мы должны что-то пробрасывать за пределы фукнции, то можно использовать колбэк функцию:
+
+@Composable
+private fun FollowButton(
+    isFollowed: Boolean,
+    clickListener: () -> Unit
+) {
+    Button(
+        onClick = { clickListener() },
+        colors = ButtonDeffaults.buttonColors(backgroundColor = 
+            if (isFollowed) {
+                MaterialTheme.colors.primary.copy(alpha = 0.5f)
+            } else
+                MaterialTheme.colors.primary
+            }
+    )
+    ) {
+        val text = if (isFollowed) { "Unfollow" } else { "Follow" }
+        Text(text = text)
+    }
+}
+
+Теперь фукнция не хранит в себе никакой стейт и также она его не изменяет - они получают стейт снаружи, и вызывают слушатели-колбэки, переданные в кажестве параметров. Это называется Stateless Composable функция. Это наиболее предпочтительный подход. Теперь её можно где угодно использовать:
+
+...
+FollowButton(isFollowed = isFollowed.value) {
+    isFollower.value = !isFollowed.value
+}
+
+Сейчас мы в InstagramProfileCard определяем состояние - подписан пользователь или нет. Но это совсем не логика View слоя. View слой должен только лишь взаимодействовать с пользователем, показывать ему какие-то элементы и реагировать на его действия. А определять, подписан ли пользователь в этой функции разносят по слоям (из clean ммодели). Но мы вынесем во ViewModel, откуда и будем получать данные.
+
+Class MainViewModel: ViewModel() {
+    private val _isFollowing = MutableLiveData<Boolean>()
+    val isFollowing: LiveData<Boolean> = _isFollowing
+
+    fun changeFollowingStatus() {
+        val wasFollowing = _isFollowing.value ?: false
+        _isFollowing.value = !wasFollowing
+    }
+}
+
+на public переменную мы будем подписываться.
+
+Теперь можно получить экземпляр этой View модели:
+
+...
+super.onCreate(savedInstanceState)
+val viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+... {
+    InstagramProfileCar(viewModel)
+}
+
+...
+
+@Composable
+fun InstagramProfileCard(
+    viewModel: MainViewModel
+) {
+    val isFollowed = viewModel.isFolloing
+    ...
+}
+
+LiveData - это такой объект, на который можно подписаться и автоматически реагировать на изменения в этом объекте. Но JetPack Compose работать с LiveData не умеет. Для того, чтобы функции реагировали на изменения в этом объекте и происодила рекомпозиция, этот объект должен быть типа State, а не LiveData. Т.е. нам нужно способ преобразовать LiveData в State. Для этого надо 1) добавить в gradle такую зависимость: 
+
+iimplementation("androidx.compose.runtime:runtime-livedata:1.2.1")
+
+2) синхронизировать
+3) вызвать метод observeAsState():
+
+val isFollowed = viewModel.isFollowing.observeAsState()
+
+или 
+
+val isFollowed: State<Boolean?> = viewModel.isFollowing.observeAsState()
+
+Это перегруженный метод - если вызывать так, то в isFollowed будет nullable-льное значение. Если явно указать параметр, то будет не нулабельный стейт и нам не нужны будут частые проверки на нуль:
+
+val isFollowed: State<Boolean> = viewModel.isFollowing.observeAsState(false)
+
+Теперь мы меняем статус не вручную, а через наш метод класса:
+
+@Composable
+fun InstagramProfileCard(
+    viewModel: MainViewModel
+) {
+    val isFollowed: State<Boolean> = viewModel.isFollowing.observeAsState(false)
+    ...
+
+    FollowButton(isFollowed = isFollowed.value) {
+        viewModel.changeFollowingStatus()
+    }
+}
+
+----------------
+
+Чтобы функции вызывались снова и происходила рекомпозиция, они должны зависить от стейта:
+
+val a: Int = mutableStateOf(5) // это будет ошибка
+val a: MutableState<Int> = remember {  // Окей
+    mutableStateOf(5)
+}
+
+Что если сделать так??:
+
+val a: MutableState<Int> by remember {  // Ошибка
+    mutableStateOf(5)
+}
+
+Возвращает функция remember не стейт типа Int, а просто Int:
+
+var a: Int by remember {
+    mutableStateOf(5)
+}
+
+В результате нам не нужно использовать поле value - мы можем напрямую использовать переменную:
+
+val b: Int = a
+a = 10
+
+Будет ли в случае изменения переменной происодить рекомпозиция? Да. - Здесь используются так называемые Делегаты. Когда мы пишем a = 10, на самом деле у объекта mutableStae вызывается метод 
+setValue() - внутри этого метода мы обращаемся к объекту к его свойству value и кладём туда новое значение. При получении значения вызывается getValue(), который тоже обращается к свойству value.
+
+Получается, что можно написать
+
+@Composable
+fun InstagramProfileCard(
+    viewModel: MainViewModel
+) {
+    val isFollowed by viewModel.isFollowing.observeAsState(false)
+    ...
+    FollowButton(isFollowed = isFollowed) {
+        viewModel.changeFollowingStatus()
+    }
+}
+
+Если проследить цепочку вызовов функций, то вызваться будут:
+
+InstagramProfileCard
+Card
+FollowButton
+
+После нажатия на кнопку:
+
+Card
+FollowButton
+
+Хотя в Card мы состояние isFollowed не используем - функция не зависит от этого состояния - и по идее она не должна вызываться. Но на самом дела, она вызывается(зависит от стейта) даже когда мы получаем значение - вызывается метод getValue у стейта: 
+
+...
+    FollowButton(isFollowed = isFollowed) {
+        viewModel.changeFollowingStatus()
+    }
+
+Вызывать Card нет смысла. Как сделать так, чтобы перерисовывалась только лишь кнопка? Нужно чтобы от данного стейта зависила только кнопка, т.е. чтобы внутри Card мы не получали это значение. Тогда можно изменить функцию FollowButton, чтобы она принимала не boolean, а state:
+
+@Composable
+fun InstagramProfileCard(
+    viewModel: MainViewModel
+) {
+    val isFollowed = viewModel.isFollowing.observeAsState(false)
+    ...
+    FollowButton(isFollowed = isFollowed) {
+        viewModel.changeFollowingStatus()
+    }
+}
+
+@Composable
+private fun FollowButton(
+    isFollowed: State<Boolean>,
+    clickListener: () -> Unit
+) {
+    ...
+    isFollowed.value = ...
+}
+
+Т.е. использование делегатов не всегда удобно.
+
+---------------------------
+
+Допустим, у нас есть наша функция PostCard. Чтобы к ней можно было применять разные модификаторы, хорошей практикой считается передавать в собственные функции первым параметром необязательный Modifier. А чтобы применить этот параметр к внутренним компоузабл функциям, мы его прямо туда и передаём:
+
+@Composable
+fun PostCard(
+    modifier: Modifier = Modifier  // просто Modifier без параметров
+) {
+    Card(
+        modifier = modifier
+    ) {
+        ...
+    }    
+}
+
+Если мы хотим добавить какие-то ещё модификаторы к тем, что мы уже передали, что можно их передать так:
+
+...
+Card(
+    modifier = modifier.size(). ...
+) {
+
+Почти в любых Composable функциях мы можем добавлять modifier, а у него есть такой элемент как clickable - это слушатель клика и он принимает лямбда выражение. И при клике на элемент с таким модифаером будет вызван данный метод.
+
+Row(
+    modifier = Modifier.clickable {
+        ...
+    }
+)
+
+Обычно мы хотим, чтобы при клике произобшла рекомпозиция и нам прилетел обновлённый элемент с данными, в котором будет обновлённые значения для того элемента, на который мы кликнули. Желательно все клики передавать наверх.
+
+Как говорилось ранее, View слой должен отвечать за отображение каких-то видимых элементов пользователю и взаимодейтсвие с ним. А изменение состояния - это ответственность других слоём. Можно, например, вынести это всё во внутрь ViewModel'и:
+
+class MainViewModel: ViewModel() {
+    private val _feedPost = MutableLiveData<FeedPost>(FeedPost())
+    val feedPost: LiveData<FeedPost> = _feedPost
+
+    fun updateCount(item: StatisticItem) {
+        val oldStatistics = feedPost.value?.statistics ?: throw ILlegalStateException("BLABLA")
+        val newStatistics = oldStatistics.toMutableList().apply {
+            replaceAll { oldItem ->
+                if (oldItem.type == item.type) {
+                    oldItem.copy(count = oldItem.count + 1)
+                } else {
+                    oldItem
+                }
+            }
+        }
+        _feedPost.value = feedPost.value?.copy(statistics = newStatistics) ?: throw ILlegalStateException("BLABLA")
+    } 
+}
+
+Нужно не забыть зависимость в gradle и синхронизироваться.
+
+Раньше мы добавляли ViewModel таким образом:
+
+val viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+
+Всё хорошо, но есть более читаемый способ - с помощью делегатов:
+
+private val viewModel by viewModels<MainViewModel>()
+
+, где <MainViewModel> - тип модели. А под капотом будет то, что мы писали изначально. Работают они абсолютно одинаково.
+
+Далее мы передаём эту модель вниз:
+
+@Composable
+fun MainScreen(viewModel: MainViewModel) {
+    val feedPost = viewModel.feedPost.observeAsState(FeedPost())  // не нулабельный тип.
+
+    ...
+    PostCard(
+        ...
+        onStatisticItemClickListener = {
+            viewModel.updateCount(it)
+        }
+    )
+}
+
+Таким образом мы вынесли работу со стейтом в view модель. Теперь, когда обновиться LiveData, то автоматически произойдёт рекомпозиция нужных composable функций.
+
+Метод reference - пример:
+
+onViewsClickListenter = {
+    viewModel.updateCount(it)
+}
+
+Это можно преобразовать в следующее, используя метод reference:
+
+onViewsClickListenter = viewModel::updateCount
+
+У объекта viewModel будет вызван метод updateCount, в который проброситься параметр, который был передан onViewsClickListenter.
+
+-------------------------------------------
+
+Если попытаемся наполнить элемент Column большим количеством других элементов, то они выйдут за пределы экрана, а сам элемент Column скролить невозможно по умолчанию! Если мы хотим какой-то элемент скролить, то это нужно указывать явно:
+
+Column(
+    modifier = Modifier.verticalScroll(
+        state = ...
+    )
+)
+
+Мы явно передаём стейт в verticalScroll(state). И для того, чтобы он не сбрасывался во время композиции, этот стейт необходимо запомнить. Для скрола есть специальный стейт - он создаётся с помощью функции:
+
+val scrollState = rememberScrollState()
+Column(
+    modifier = Modifier.verticalScroll(
+        state = scrollState
+    )
+)
+
+После этого мы можем скролить элементы Column. 
+
+Важно! Абсолютно все composable функции вызываются при старте экрана. При добавления большого количества элементов на экран, то либо приложение будет очень сильно тормозить, либо оно упадёт с ошибкой - на устройстве закончилась память. Хранить все View элементы в памяти никогда не стоит. Вместо этого в Android был придуман RecyclerView. Зачем он нужен? В один момент пользователь видит только несколько элементов - в данном случае нет необходимости создавать остальные элементы, а когда пользователь будет скролить, то только тогда создавать новые элементы или даже переиспользовать существующие.
+
+В этих целях в JetPack Compose был создан элемент LazyColumn. Последним параметром он принимает расширение для LazyListScope и он не является Composable:
+
+content: LazyListScope.() -> Unit
+
+Уже в этом интерфейсе есть несколько методов: item, items и stickyHeader. Иммено они принимают последним параметром Composable функцию и они будут элементами внутри LazyColumn.
+
+Почему LazyColumn не принимает Composable функцию? Её суть  в том, чтобы вызывать только те Composable функции тех элементов, которые сейчас видны на экране. Если элемент на экране не виден, то и его функцию вызывать не нужно. Чтобы контролировать этот процесс, каждый элемент отображённый на экране, должен быть вызван внутри функции item({...}). Если мы хотим отобразить 100 элементов, то эти элементы можно поместить в item() и вызвать её 100 раз:
+
+LazyColumn {
+    repeat(1000) {
+        item {
+            Log.d("LazyListTest", "Number: $it")
+            Text(text = "hello", color = Color.White)
+        }
+    }
+}
+
+У нас элементы будут появляться по мере необходимости по мере необходимости - что видно в логе.
+
+При этом этих item и items элементов может быть сколько угодно, и в них могут быть и картинки, и текст, ...
+
+Вместо того, чтобы постоянно писать repeat(N) { ... } мы можем использовать items, которая принимает количество повторений N, и внутри неё вызывать разные Composable функции:
+
+LazyColumn {
+    items(500) {
+        InstagramProfileCard(viewModel)
+    }
+}
+
+При этом при скролиинге может происходить подтормаживание - это нормально, она обычно возникает только на дебажных сборках(во время дебага работает очень много дополнительных операций, нужных для отладки). В релизе списки будут скролиться нормально. 
