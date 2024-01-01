@@ -152,7 +152,13 @@ fun BottomNavigationSample() {
                     Text(text = stringResource(id = it.titleResId))
                 },
                 onClick = {},
-                selected = false
+                selected = false,
+                colors = NavigationBarItemDefaults.colors(
+                            unselectedIconColor = MaterialTheme.colorScheme.onSecondary,
+                            unselectedTextColor = Color.Gray,
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTextColor = Color.White
+                        )
             )
         }
     }
@@ -162,6 +168,8 @@ fun BottomNavigationSample() {
 * items - отображаемые строки
 * NavigationBar - установить для каждого элемента коллекции иконку, лэйбл, колбэк, значение - отмечен ли элемент. 
 NavigationBar предоставляет RowScope
+
+
 
 ----------------------
 Для версии material 3 
