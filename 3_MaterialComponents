@@ -142,13 +142,17 @@ fun BottomNavigationSample() {
     var selectedItem by remember { mutableStateOf(0) }
     val items = listOf("Songs", "Artists", "Playlists")
 
-    BottomNavigation(windowInsets = BottomNavigationDefaults.windowInsets) {
+    NavigationBar() {
         items.forEachIndexed { index, item ->
-            BottomNavigationItem(
-                icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
-                label = { Text(item) },
-                selected = selectedItem == index,
-                onClick = { selectedItem = index }
+            NavigationBarItem(
+                icon = {
+                    Icon(it.icon, contentDescription = null)
+                },
+                label = {
+                    Text(text = stringResource(id = it.titleResId))
+                },
+                onClick = {},
+                selected = false
             )
         }
     }
@@ -156,11 +160,11 @@ fun BottomNavigationSample() {
 
 Где
 * items - отображаемые строки
-* BottomNavigationItem - установить для каждого элемента коллекции иконку, лэйбл, колбэк, значение - отмечен ли элемент. а также: selectedContentColor - цвет для выбранных элементов, unselectedContentColor - цвета для невыбранных элементов.
-BottomNavigation предоставляет RowScope
+* NavigationBar - установить для каждого элемента коллекции иконку, лэйбл, колбэк, значение - отмечен ли элемент. 
+NavigationBar предоставляет RowScope
 
 ----------------------
-Для версии material 3
+Для версии material 3 
 
 ModalNavigationDrawer(
     drawerContent = {
