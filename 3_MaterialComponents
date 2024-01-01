@@ -160,6 +160,66 @@ fun BottomNavigationSample() {
 BottomNavigation предоставляет RowScope
 
 ----------------------
+Для версии material 3
+
+ModalNavigationDrawer(
+    drawerContent = {
+        ModalDrawerSheet {
+            Text("Drawer title", modifier = Modifier.padding(16.dp))
+            Divider()
+            NavigationDrawerItem(
+                label = { Text(text = "Drawer Item") },
+                selected = false,
+                onClick = { /*TODO*/ }
+            )
+            // ...other drawer items
+        }
+    }
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(text = "title")
+                },
+                navigationIcon = {
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = null
+                        )
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            BottomAppBar {
+                IconButton(onClick = { }) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Меню")
+                }
+                Spacer(Modifier.weight(1f, true))
+
+                IconButton(onClick = { }) {
+                    Icon(Icons.Filled.Info, contentDescription = "Информация о приложении")
+                }
+                IconButton(
+                    onClick = { },
+                    enabled = false
+                ) {
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = "Избранное"
+                    )
+                }
+            }
+
+        }
+    ) {
+        Text(text = "Hello", modifier = Modifier.padding(it))
+    }
+}
+
+----------------------
 
 sealed класс - это обычный класс, наследники которого должны быть объявленны внутри этого же файла/класса или, с определённой версии котлин, внутри одного пакета. 
 
