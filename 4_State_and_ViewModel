@@ -359,7 +359,7 @@ LazyColumn {
 
 При этом этих item и items элементов может быть сколько угодно, и в них могут быть и картинки, и текст, ...
 
-Вместо того, чтобы постоянно писать repeat(N) { ... } мы можем использовать items, которая принимает количество повторений N, и внутри неё вызывать разные Composable функции:
+Вместо того, чтобы постоянно писать repeat(N) { ... } мы можем использовать items, которая принимает количество повторений N, и внутри неё вызывать разные Composable функции. Также, функция может вместо количества принимать саму коллекцию.
 
 LazyColumn {
     items(500) {
@@ -368,3 +368,103 @@ LazyColumn {
 }
 
 При этом при скролиинге может происходить подтормаживание - это нормально, она обычно возникает только на дебажных сборках(во время дебага работает очень много дополнительных операций, нужных для отладки). В релизе списки будут скролиться нормально. 
+
+Если нужно расположить элементы вертикально, то у нас используется LazyColumn. А если хотим отобразить элементы в строчку, то можем использовать LazyRow:
+
+LazyRow {
+    items(500) {
+        InstagramProfileCard(viewModel)
+    }
+}
+
+Ещё есть LazyVerticalGrid - он представляет собой сетку. Он принимает количество ячеек: GridSells.Fixed(INT) - фиксированное количество колонок, GridSells.Adaptive(DP) - минимальный раазмер колонки в Dp. Теперь все элементы будут располагаться в две колонки:
+
+LazyVerticalGrid(cell = GridSells.Fixed(2)) {
+    InstagramProfileCard(viewModel)
+}
+
+Часто появляется ошибка, что какой-то метод является эксперииментальным - в будущем его могут либо сильно поменять, либо вообще удалить. Поэтому для их использования необходимо добавлять аннотацию @OptIn(ExperimentalFoundationAPI::class)
+
+-------------------------------------
+
+Очень часто, когда мы работаем с изменяемыми объектами нам нужно производить с ними какое-то действие. Для этого  с ними используются объекты state. Если мы хотим, например, управлять скролом, то нам нужно воздействовать на стейт, который отвечает за стейт. В LazyColumn есть параметр state: LazyListState. Чтобы его получить, можно вызывать функцию rememberLazyListState:
+
+val lazyListState = rememberLazyListState()
+LazyColumn(
+    state = lazyListState
+) {
+    ...
+}
+
+Будем управлять скролом через кнопку(нам нужен корутинСкоуп, т.к. функция ScrollToItem саспенд):
+
+val scope  = rememberCoroutineScope()
+FloatingActionButton(
+    onClick = {
+        scope.launch {
+            lazyListState.scrollToItem(0)  // индекс элемента 
+        }
+          
+    }
+}
+
+Для удаления элемента с помощью свайпа нужно использовать функцию SwipeToDismiss. Параметры:
+* state: DismissState - стейт - может принимать несколько значений: Default - элемент просто отображается на экране, DismissToEnd/DismissToStart - когда пользователь сделал свайп влево или вправо(и элемент исчез с экрана).
+* direction: Set<DismissDirection> - куда можно делать свайп.
+* dismissThresholds - (функция) - на какой процент экрана пользователь должен сделать свайп, чтобы элемент исчез с экрана.
+* dismissContent - @Composable фукнция - тот контент, который мы отобраажаем на экране.
+* background - @Composable функция - то,  что будет на фоне при свайпе
+
+LazyColumn {
+    
+    items(100) {
+        val dismissState = rememberDismissState()
+        SwipeToDismiss(
+            state = dismissState,
+            directions = setOf(DismissDirection.EndToStart),
+            background = {
+                Box (
+                    modifier = Modifier.background(Color.Red.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.CenterEnd
+                ) { Text(text = "Delete Item", color = Color.Wight) }
+            }
+        ) {
+            InstagramProfileCard(viewModel)
+        }
+    }
+}
+
+После того как мы удалили элемент, состояние стейта меняется с default на dismissed. Поэтому на это можно добавить проверку(например, для удаления):
+
+if (dismissState.isDismissed(DismissDirection.EntToStart)) {
+    ...
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
