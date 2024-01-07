@@ -6,7 +6,7 @@
 
 При использования Compose мы не используем view элементы и макеты, поэтому в ресурсах нет директории layout. Абсолютно весь UI строиться через composable функции. Корень для вызова всех composable функций - setContent():
 
-```kotlin
+```
 setContent {
 	Text(text = "Hello, android!")
 }
