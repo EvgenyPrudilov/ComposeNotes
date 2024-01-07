@@ -90,7 +90,28 @@ getImageButton.setOnClickListener { it: View! ->
 }
 ```
 
+Создание контракта и лончера вполне можно было бы перенести в тело кликабельной функции. Но вызывать функцию registerForActivityResult нужно ДО состояния started, т.е. когда активити ещё не видна. Поэтому мы обязаны вызывать это всё в onCreate(). 
 
+Мы сами создавали контракты, но на самом деле библиотека Андроид содержит большое количество готовых контрактов, которые можно использовать. То, что мы сделали выше, используется очень часто, поэтому такой контракт уже существует. Все контракты можно найти в классе ActivityResultContracts.
+
+```
+val contractUsername = ActivityResultContracts.StartActivityForResult()
+val launcherUsername = registerForActivityResult(contractUsername) {
+  if (it.resultCode == RESULT_OK) {
+    usernameTextView.text = it.data?.getStringExtra(UsernameActivity.EXTRA_USERNAME) ?: ""
+  }
+}
+```
+
+Функция StartActivityForResult возвращает тип ActivityResult, т.к. на этапе определения функции parseResult мы не знаем, какой тип результата мы будем использовать. У него есть два поля: 1) resultCode: Int 2) data: Intent . Мы можем их использовать.
+
+Контракт для картинки из галлереи:
+
+```
+val contractImage = ActivityResultContracts.GetContent()
+val launcherImage = registerForActivityResult(contractImage) {
+  imageFromGalleryImageView.setImageURI(it)
+}
 ```
 
 
