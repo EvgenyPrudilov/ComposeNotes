@@ -1,9 +1,12 @@
+```makrdown
+
 -----------------
 Основы JetPack Compose
 -----------------
 
 При использования Compose мы не используем view элементы и макеты, поэтому в ресурсах нет директории layout. Абсолютно весь UI строиться через composable функции. Корень для вызова всех composable функций - setContent():
 
+```kotlin
 setContent {
 	Text(text = "Hello, android!")
 }
@@ -14,6 +17,7 @@ public fun ComponentActivity.setContent(
 ) {
   ...
 }
+```
 
 параметр parent - может отсутствовать, тогда будет null
 параметр content - функция, помеченная аннотацией @Composable - значит мы можем передать лямбду в конце, которая автоматически станет composable функцией.
@@ -28,6 +32,7 @@ public fun ComponentActivity.setContent(
 
 Элемент Column является аналогом LinearLayout с вертикальной ориентацией.
 
+```
 Column {
     Text(
         text = "Hello ", color = Color.Green
@@ -36,23 +41,26 @@ Column {
         text = "Good ", color = Color.Blue
     )
 }
+```
 
 Всё, что вызывается внутри будет расположено друг под другом. Можно, например, использовать циклы:
 
+```
 Column {
     repeat (10) {
         Text(
             text = "Hello ", color = Color.Green
         )
     }
-
 }
+```
 
 Элемент Row является аналогом LinearLayout с горизонтальной ориентацией.
 
 Одним из параметром многих элементов является объект типа Modifier - используется, чтобы модифицировать элементы каким-то образом: добавить отступы, установить высоту/ширину, ... Параметр не обязательный. 
 Modifier строиться через шаблон Builder, т.е. мы можем через точку все желаемые атрибуты:
 
+```
 Column(
     modifier = Modifier
       .background(color = Color.White)
@@ -60,6 +68,7 @@ Column(
 ) {
     ...
 }
+```
 
 Все элементы по умолчанию все элементы занимают столько места, сколько нужно для отображения их содержимого, т.е. wrap_content.
 Модификаторы fillMaxHeight и fillMaxWidth являются аналогами для match_parent.
@@ -78,25 +87,31 @@ Column(
 У него есть параметр Shape, у которого по умолчанию значение MaterialTheme.shapes.medium, которое равно RoundedCornerShape(4.dp) - он скругляет углы элемента. У него есть параметр shape, у которого не очень много параметров: RoundedCornerShape(8.dp) - закругляем по радиусу(все углам по 8 dp одинаково, но можно и всем по отдельности задарь радиус), RectangleShape - просто прямоугольная форма(это объект - скобки не нужны), CircleShape - круглая форма.
 Чтобы сделать скруглённые углы только сверху, можно использовать следующее:
 
+```
 shape = RoundedCornerShape(4.dp).copy(
     bottomEnd = CornerSize(0.dp),
     bottomStart = CornerSize(0.dp)
-) 
+)
+```
 
 или
 
+```
 shape = RoundedCornerShape(
     topEnd = 4.dp,
     topStart = 4.dp
 )
+```
 
 Есть у него параметр border, которая имеет тип BorderStroke, которая принимает ширину в dp и цвет.
 Чтобы установить цвета нужно использовать 
 
+```
 colors = CardDefaults.cardColors(
     containerColor = Color.DarkGray, //Card background color
     contentColor = Color.White  //Card content color,e.g.text
 )
+```
 
 При создании проекта автоматически создаётся файл темы с темой по умолчанию:
 
@@ -110,6 +125,7 @@ InstagramTheme - это функция, которая принимает три
 
 полезно делать так для сравнения влияния тем:
 
+```
 @Preview
 @Composable
 private fun PreviewCardLight() {
@@ -129,6 +145,7 @@ private fun PreviewCardDard() {
         InstagramProfileCard()
     }
 }
+```
 
 Если мы видим, что что-то в элементах интерфейса, например, Text, в параметрах стоит по умолчанию и = Unspecified(например, Color.Unspecified), то это значит, что значение наследуется от родительской composable функции.
 параметр fontSize - размер шрифта( в единицах sp)
@@ -138,12 +155,15 @@ private fun PreviewCardDard() {
 
 Если нам нужно по разному оформлять отрывки в тексте, то можно использовать перегруженную функцию @composable Text, которая принимает annotatedString (через buildAnnotatedString), в которой можно использовать функцию append("...") для добавления текста. Внутри annotatedString мы долны использовать 
 
+```
 withStyle(SpanStyle(param = value, param2 - value2, ...)) {
 	текст со стилем
 }
+```
 
 Например
 
+```
 Text(
     buildAnnotatedString {
         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
@@ -159,6 +179,7 @@ Text(
 
     }
 )
+```
 
 Для работы с картинками, нужна Composable функция Image, у которой есть несколько перегрузок:
 1) pointer: Pointer - отображение как растровых, так и векторных картинок
@@ -167,6 +188,7 @@ Text(
 
 contentDescription - параметр нужен для описания функции для слепых людей
 
+```
 Image(
     imageVector = Icons.Rounded.MoreVert, // стандартные иконки
     contentDescription = null
@@ -178,11 +200,13 @@ Image(
     painter = painterResource(id = R.drawable.ic_launcher_background),
     contentDescription = ""
 )
+```
 
 contentScale - по умолчанию принимает  ContentScale.Fit - масштабирования нет, отображаем картинку так, как она есть на самом деле. FillBounds - заполнить по всему экрану, FillWidth - заполнить весь экран по ширине, а по высоте - сколько нужно, FillHeight - заполнить весь экран по высоте, а по ширине - сколько нужно. При этом картинка по необходимости растягиевается по всему экрану, а остальное обрезается.
 
 У модификатора есть атрибут clip, которой мы можем передать параметр типа Shape, например CircleShape - картинка будет обрезана по кругу.
 
+```
 Image(
     modifier = Modifier
         .fillMaxSize()
@@ -191,6 +215,7 @@ Image(
     contentDescription = "",
     //contentScale = ContentScale.FillHeight
 )
+```
 
 Использование растровых изображений нежелательно в андроид разработке, т.к. устройств очень много, у них у всех разные дисплеи. Поэтому картинка будет нормальной на одном экране, а на другом растянуто, и из-за этого приходится в один проект добавлять много одинаковых картинок для разных экранов.
 Поэтому удобнее использовать векторных изображения, которые поставляются в формате svg.
@@ -201,24 +226,29 @@ Image(
 
 есть специальный элемент Spacer, который нужен для того, что заполнять какие-то пространства. Это как бы ещё один элемент, который вставляется между другими:
 
+```
 Spacer(
     modifier = Modifier
         .width(8.dp)
 )
+```
 
 Есть такой элемент Surface, который используется для задания фона. И внутри которого мы располагаем все наши элементы интерфейса. Под капотом он использует Box
 
+```
 Surface(
     modifier = Modifier.fillMaxSize(),
     color = MaterialTheme.colorScheme.background
 ) {
     ...
 }
+```
 
 В файле Color.kt мы указываем используемые цвета. 
 
 При установке цветов в теме у нас может быть конфликт имёт. В таком случае можно установить аннотацию @SuppressLint("ConflictingOnColor"):
 
+```
 @SuppressLint("ConflictingOnColor")
 private val DarkColorScheme = darkColorScheme(
     primary = Black900,
@@ -226,6 +256,7 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = Color.White,
     onSecondary = Black500
 )
+```
 
 Когда мы работаем с векторными иконками удобно вместо функции Image использовать Icon - у нё есть атрибут tint, который позволяет указать цвет для данной иконки.
 
@@ -233,3 +264,5 @@ private val DarkColorScheme = darkColorScheme(
 
 Можно растянуть картинку с помощью параметра
 contentScale = ContentScale.FillWidth
+
+```
