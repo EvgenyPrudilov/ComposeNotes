@@ -114,7 +114,58 @@ val launcherImage = registerForActivityResult(contractImage) {
 }
 ```
 
+--------------------------------------------------
 
+Как этим пользоваться в Compose. Пример:
+
+```
+setContent {
+    var imageUri by remember {
+        mutableStateOf(Uri.EMPTY)
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = {
+            imageUri = it
+        }
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
+    ) {
+        AsyncImage(
+            model = imageUri,
+            contentDescription = null,
+            modifier = Modifier.weight(1f)
+        )
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+            ,
+            onClick = {
+                launcher.launch("image/*")
+            }) {
+            Text(text = "Get image")
+        }
+    }
+}
+```
+
+Мы не можем передать в Image адрес картинки, поэтому будем пользоваться сторонней библиотекой. Для библиотеки Coil, которая нужна для открытия/загрузки картинок, нужна зависимость:
+
+```
+implementation("io.coil-kt:coil-compose:2.5.0")
+```
+
+Мы отобразим картинку, когда у нас будет её адрес, а значит её адрес должен быть её стейтом, на который будут реагировать Composable функции. Так мы создаём imageUri с изначально пустым значением Uri.EMPTY.
+Дальше нужно создать ActivityResult лончер, который будет получать изображение из галлереи. Но у нас здесь нет никакой активити, а потому мы не можем вызвать метод registerForActivityResult(). Поэтому в Compose мы делаем это через функцию rememberLauncherForActivityResult(), у которой тоже есть параметры 1) контракт(свой или готовый от гугл) 2) колбэк для вызова после завершения работы.
+При клике на кнопку, мы будем запускать launcher.launch("image/*"). Запуск лончера должен происходить не в нутри Composable функции
+
+При этом ВАЖНО, что если не установить размер изображения, оно отображаться не будет!
 
 
 
