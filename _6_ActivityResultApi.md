@@ -1,4 +1,4 @@
-```markdown
+
 #ActivityResultApi
 
 Есть старый способ получать результат от активити через startActivityForResult(), который помечен как deprecated. 
@@ -67,7 +67,6 @@ getUserNameButton.setOnClickListener { it: View! ->
 }
 ```
 
-```kotlin
 
 ```
 
