@@ -1,5 +1,5 @@
 
-#ActivityResultApi
+ActivityResultApi
 
 Есть старый способ получать результат от активити через startActivityForResult(), который помечен как deprecated. 
 Новый способ - использовать ActivityresultApi. Суть в том, что мы создаём контракт, в котором описываем, какой результат мы хотим получить от запускаемой активити, а также, какие данные нам понадабяться на вход.
@@ -64,6 +64,29 @@ override fun createIntent(context: Context, input: Unit): Intent {
 ...
 getUserNameButton.setOnClickListener { it: View! ->
   launch.launch(Unit)
+}
+```
+
+Если мы хотим создать активити для выбора и возвращения картинки, что можно сделать так:
+
+```kotlin
+val contract = object : ActivityResultContract<String, Uri?>() {
+  override fun createIntent(context: Context, input: String): Intent {
+    return Intent(Intent.ACTION_PICK).apply {
+      type = input
+    }
+}
+  override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
+    return intent?.data
+  }
+}
+...
+val launcherImage = registerForActivityResult(constract) { it: Uri? ->
+  ImageFromGalleryImageView.setImageURI(it)
+}
+...
+getImageButton.setOnClickListener { it: View! ->
+  launcherImage.launch("image/*")
 }
 ```
 
