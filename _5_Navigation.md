@@ -7,15 +7,18 @@
 
 Определим livedata для текущего элемента навигации:
 
+```
 private val _selectedNavItem = MutableLiveData<NavigationItem>(NavigationItem.Home)
 val selectedNavItem: LiveData<NavigationItem> = _selectedNavItem
 
 fun selectNavItem(item: navigationitem) {
     _selectednavItem.value = item
 }
+```
 
 Теперь при клике на определённый item будем:
 
+```
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
     val selectedNavItem by viewModel.selectedNavItem.observeAsState(NavigationItem.Home)
@@ -37,6 +40,7 @@ fun MainScreen(viewModel: MainViewModel) {
         }
 
     }
+```
 
 Теперь при клике на табы, у нас будут вызываться соответствующие функции. но с таким подходом к навигации есть несколько проблем:
 1) При переходе по табам Composable функции не складываются в бэкстек(при переходе с одного экрана на другой - если кликнуть на кнопку назад, то должен открыться предыдущий экран. В нашем случае этого не происходит и приложение закрывается)
@@ -48,12 +52,15 @@ fun MainScreen(viewModel: MainViewModel) {
 
 Есть готовое решение от гугл - JetPack Compose Navigation:
 
+```
 implementation("androidx.navigation:navigation-compose:2.5.2")
+```
 
 Мы объекту навигации будем передавать путь - куда нужно перейти - это просто строка с названием экрана.
 
 Обычно, создают отдельный класс Screen, наследники которого представляют собой экраны со своими названиями, которые нужны для навигации:
 
+```
 sealed class Screen(
     val route: String
 ) {
@@ -67,9 +74,11 @@ sealed class Screen(
         const val ROUTE_PROFILE = "profile"
     }
 }
+```
 
 Навигация - это граф, который описывает все возможные переходы. Для его  создания делаем так - вызываем NavHost(у которой есть несколько перегрузок):
 
+```
 @Composable
 fun AppNavGraph(
     navHostController: NavHostController
@@ -80,6 +89,7 @@ fun AppNavGraph(
 
     )
 }
+```
 
 * startDestination - экран, который будет открываться первым
 * builder - здесь будем строить весь граф приложения: направления и переходы, которые будут присутствовать в графе.
@@ -90,6 +100,7 @@ fun AppNavGraph(
 * deepLinks - List<NavDeepLinks> - диплинки??? что это???
 * content - контент, который мы будем отображать при переходе на данный экран
 
+```
 NavHost(...) {
     composable(
         Screen.NewsFeed.route
@@ -98,9 +109,11 @@ NavHost(...) {
 
     }
 }
+```
 
 Внутри можно было бы вызывать функцию экрана, но так делать не рекомендуется. Вместо этого лучше передать колбэк функции, которые уже и будут вызываться:
 
+```
 fun AppNavGraph(
     ...
     homeScreenContent: @Composable () -> Unit,
@@ -122,9 +135,11 @@ fun AppNavGraph(
     ...
 
 }
+```
 
 Наш граф готов. Теперь его можно использовать на главном экране. Объект navHostController будет хранить стейт навигации - мы у него будем вызывать navigate, передавать имя экрана, на который хотим перейти, и он будет делать всю работу:
 
+```
 val navHostController = rememberNavController()
 ...
 ) { paddingValues ->
@@ -135,18 +150,22 @@ val navHostController = rememberNavController()
         profileScreenContent = { TextCounter(name = ...) },
     )
 }
+```
 
 Но сейчас BottomNavigation ничего не знает про наш AppNavGraph и элементы, которые мы в нём отображаем также никак не связаны с нашей навигацией:
 
+```
 BottomNavigationItem(
     ...
     onClick = {
         navHostController.navigate(item.screen)
     }
 )
+```
 
 Нам нужен стейт, в котором будет храниться текущий открытый экран. И на изменения в этом стейте мы будем реагировать и подсвечивать кнопку открывшегося экрана. Такой стейт можно получить у navHostController'а:
 
+```
 BottomNavigation {
     val navBackStackEntry by navHostController.currentBackStackEntryAsState()
     currentRoute = navBackStackEntry?.destination?.route
@@ -157,15 +176,18 @@ BottomNavigation {
     )
 
 }
+```
 
 Если экран меняется, то будет меняться стейт, а значит будет происходить рекомпозиция.
 
 Теперь у нас работает Бэкстек. Но при переходе назад, мы не создавали компоузэбл функцию - она была взята из стека, но при этом её состояние сбросилось. Когда мы возвращаемся назад на экран, то функция дожна быть вызвана заново, и это та же компоузэбл функция, которая уже вызывалась ранее, а значит должна была произойти рекомпозиция и состояние должно было сохраниться(мы использовали remember). Дело в том, что когда функция помещается в бэкстек - она умирает(как будто мы переворачиваем устройство). Значит нам нужно восстанавливать её состояние. Это можно  сделать с помощью rememberSaveable:
 
+```
 fun TextCounter(name: STring) {
     var count by rememberSaveable {
         mutableStateOf(0) 
     }
 }
+```
 
 Ещё проблема: если много раз кликнуть на таб, то множество функций будет лежать в бэкстеке и при клике назад, мы будем их все по очереди пересоздавать. Это можно решить добавив 
